@@ -636,7 +636,7 @@ with st.sidebar:
     uploaded_file = st.file_uploader("Upload Interventions JSON", type=['json'], label_visibility="collapsed")
     if uploaded_file:
         try:
-        interventions_data = json.load(uploaded_file)
+            interventions_data = json.load(uploaded_file)
             if rag_system.pipeline.add_interventions_to_db(interventions_data):
                 st.success(f"✅ Loaded {len(interventions_data)} interventions")
                 st.rerun()
@@ -710,7 +710,7 @@ st.markdown("</div>", unsafe_allow_html=True)
 # Action Button
 st.markdown("<br>", unsafe_allow_html=True)
 if st.button("🚀 Generate AI Recommendation", type="primary", use_container_width=True):
-        if user_query:
+    if user_query:
         start_time = time.time()
         
         with st.spinner("🔍 Processing: Semantic Search → Context Building → AI Generation..."):
@@ -887,13 +887,13 @@ if st.button("🚀 Generate AI Recommendation", type="primary", use_container_wi
                 else:
                     st.warning("⚠️ No relevant interventions found. Try rephrasing your query.")
                     if result.get('recommendation'):
-                st.info(result['recommendation'])
+                        st.info(result['recommendation'])
                 
             except Exception as e:
                 st.error(f"❌ Error: {str(e)}")
                 with st.expander("🔍 Error Details"):
                     st.exception(e)
-        else:
+    else:
         st.warning("⚠️ Please enter a query in the text area above")
 
 # ============================================================================
@@ -934,7 +934,7 @@ with tab1:
         
         with col2:
             problem_counts = {}
-        for intervention in rag_system.pipeline.data:
+            for intervention in rag_system.pipeline.data:
                 problem = intervention.get('problem', '')
                 if problem:
                     problem_counts[problem] = problem_counts.get(problem, 0) + 1
