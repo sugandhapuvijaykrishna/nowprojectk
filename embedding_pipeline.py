@@ -25,7 +25,8 @@ class RoadSafetyEmbeddingPipeline:
             return False
         self.data = interventions_data
         texts = [self._create_composite_text(i) for i in self.data]
-        self.embeddings = self.embedding_model.encode(texts)
+        # Encode with normalization for better cosine similarity
+        self.embeddings = self.embedding_model.encode(texts, normalize_embeddings=True)
         self.save_database()
         return True
     
@@ -34,11 +35,11 @@ class RoadSafetyEmbeddingPipeline:
         # New format: problem, category, type, data, code, clause, content
         # Old format: name, description, problem_type, road_type, effectiveness, cost
         
-        # Extract name/type
-        name = intervention.get('name') or intervention.get('type', '')
+        # Extract name/type - prioritize type as it's more specific
+        name = intervention.get('type', '') or intervention.get('name', '')
         
-        # Extract description/data
-        description = intervention.get('description') or intervention.get('data', '')
+        # Extract description/data - use data field which has more detail
+        description = intervention.get('data', '') or intervention.get('description', '')
         
         # Extract problem - could be string or list
         problem = intervention.get('problem', '')
@@ -56,26 +57,38 @@ class RoadSafetyEmbeddingPipeline:
         code = intervention.get('code', '')
         clause = intervention.get('clause', '')
         
-        # Extract content if available
+        # Extract content if available - this has the full formatted text
         content = intervention.get('content', '')
         
-        # Build composite text for embedding
-        parts = [
-            f"Intervention: {name}",
-            f"Category: {category}",
-            f"Problem: {problem_types}",
-            f"Description: {description}",
-            f"Code: {code}",
-            f"Clause: {clause}"
-        ]
+        # Build comprehensive composite text for better embeddings
+        # Include all relevant information that users might search for
+        parts = []
         
+        # Primary identifiers
+        if name:
+            parts.append(f"{name}")
+        if category:
+            parts.append(f"{category}")
+        if problem_types:
+            parts.append(f"{problem_types}")
+        
+        # Detailed description - use content if available as it's more comprehensive
         if content:
-            parts.append(f"Content: {content}")
+            parts.append(content)
+        elif description:
+            parts.append(description)
+        
+        # Technical details
+        if code:
+            parts.append(f"Code {code}")
+        if clause:
+            parts.append(f"Clause {clause}")
         
         # Add old format fields if present
         road_types = intervention.get('road_type', [])
         if road_types:
-            parts.append(f"Road Types: {', '.join(road_types) if isinstance(road_types, list) else road_types}")
+            road_str = ', '.join(road_types) if isinstance(road_types, list) else str(road_types)
+            parts.append(f"Road types: {road_str}")
         
         effectiveness = intervention.get('effectiveness', '')
         if effectiveness:
@@ -85,21 +98,42 @@ class RoadSafetyEmbeddingPipeline:
         if cost:
             parts.append(f"Cost: {cost}")
         
+        # Join with spaces for better embedding
         return " ".join(parts)
     
-    def search_interventions(self, query, top_k=5):
-        if self.embeddings is None:
+    def search_interventions(self, query, top_k=5, min_similarity=0.3):
+        if self.embeddings is None or len(self.data) == 0:
             return {'interventions': [], 'total_count': 0}
-        query_embedding = self.embedding_model.encode([query])
-        similarities = np.dot(self.embeddings, query_embedding.T).flatten()
-        top_indices = np.argsort(similarities)[::-1][:top_k]
+        
+        # Encode query
+        query_embedding = self.embedding_model.encode([query], normalize_embeddings=True)
+        
+        # Normalize embeddings for better cosine similarity
+        if self.embeddings is not None:
+            # Normalize embeddings
+            norms = np.linalg.norm(self.embeddings, axis=1, keepdims=True)
+            normalized_embeddings = self.embeddings / (norms + 1e-8)
+            
+            # Calculate cosine similarity
+            similarities = np.dot(normalized_embeddings, query_embedding.T).flatten()
+        else:
+            return {'interventions': [], 'total_count': 0}
+        
+        # Get top k indices, but filter by minimum similarity
+        top_indices = np.argsort(similarities)[::-1][:top_k * 2]  # Get more candidates
+        filtered_indices = [idx for idx in top_indices if similarities[idx] >= min_similarity][:top_k]
+        
+        if not filtered_indices:
+            # If no results meet threshold, return top results anyway
+            filtered_indices = top_indices[:top_k]
+        
         results = {'interventions': []}
-        for i, idx in enumerate(top_indices):
+        for i, idx in enumerate(filtered_indices):
             intervention = self.data[idx]
             
             # Handle both old and new data formats
-            name = intervention.get('name') or intervention.get('type', '')
-            description = intervention.get('description') or intervention.get('data', '')
+            name = intervention.get('type', '') or intervention.get('name', '')
+            description = intervention.get('data', '') or intervention.get('description', '')
             
             # Handle problem - could be string or list
             problem = intervention.get('problem', '')
@@ -123,7 +157,7 @@ class RoadSafetyEmbeddingPipeline:
                 'name': name,
                 'problem_type': problem_type if isinstance(problem_type, list) else [problem_type] if problem_type else [],
                 'road_type': road_type if isinstance(road_type, list) else [road_type] if road_type else [],
-                'similarity_score': round(float(similarities[idx]), 3),
+                'similarity_score': round(float(similarities[idx]), 4),
                 'description': description,
                 'category': category,
                 'code': intervention.get('code', ''),

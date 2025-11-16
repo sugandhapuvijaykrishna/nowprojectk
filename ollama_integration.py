@@ -72,19 +72,36 @@ class RoadSafetyRAG:
         
         context = "\n\n".join(context_parts)
         
-        prompt = f"""You are an expert road safety consultant. Based on the following road safety interventions retrieved from a database, provide specific, actionable recommendations for this query: "{user_query}"
+        prompt = f"""You are an expert road safety consultant with deep knowledge of IRC codes and road safety standards. 
 
-Available Interventions:
+User Query: "{user_query}"
+
+Based on the following relevant road safety interventions retrieved from the database, provide a detailed, actionable recommendation:
+
 {context}
 
-Provide a comprehensive response with:
-1. **Top Recommended Intervention(s)**: Which intervention(s) would be most suitable and why
-2. **Suitability Analysis**: Explain why the recommended intervention fits this specific problem
-3. **Key Considerations**: Important factors to consider (cost, implementation time, effectiveness, etc.)
-4. **Expected Outcomes**: What results can be expected from implementing this intervention
-5. **Alternative Options**: If applicable, mention other viable alternatives
+Please provide a comprehensive response that includes:
 
-Format your response in a clear, professional manner suitable for road safety planning."""
+1. **Recommended Solution**: Clearly state which intervention(s) from the list above best addresses the user's query. Reference the specific intervention by name/type.
+
+2. **Why This Solution**: Explain in detail why this intervention is suitable for the specific problem mentioned in the query. Reference the technical details (code, clause) provided.
+
+3. **Implementation Details**: Based on the intervention data provided, explain:
+   - Key specifications and requirements
+   - Placement/installation guidelines if mentioned
+   - Dimensions, materials, or technical standards if applicable
+
+4. **Important Considerations**: Mention any critical factors from the intervention data such as:
+   - Road type requirements
+   - Speed considerations
+   - Visibility requirements
+   - Maintenance needs
+
+5. **Expected Results**: What outcomes can be expected from implementing this solution based on the intervention standards.
+
+6. **Alternative Options**: If other interventions from the list could also work, mention them briefly.
+
+Format your response in clear, professional language suitable for road safety planning. Be specific and reference the intervention details provided. Use bullet points for clarity."""
 
         response = self.query_ollama(prompt)
         
