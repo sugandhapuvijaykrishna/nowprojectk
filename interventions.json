@@ -1,0 +1,24 @@
+[
+  {
+    "intervention_id": "RSI-001",
+    "name": "Speed Humps",
+    "description": "Vertical deflection devices that physically slow vehicles by creating discomfort at higher speeds.",
+    "problem_type": ["speeding", "residential safety"],
+    "road_type": ["local streets", "school zones"],
+    "effectiveness": "High",
+    "cost": "Low to Medium",
+    "implementation_time": "1-2 weeks",
+    "references": ["WHO Guidelines"]
+  },
+  {
+    "intervention_id": "RSI-002",
+    "name": "Pedestrian Crosswalks",
+    "description": "Marked crosswalks with enhanced visibility for pedestrian safety.",
+    "problem_type": ["pedestrian safety", "crossing accidents"],
+    "road_type": ["urban roads", "commercial areas"],
+    "effectiveness": "Medium", 
+    "cost": "Low",
+    "implementation_time": "1 week",
+    "references": ["FHWA Manual"]
+  }
+]
